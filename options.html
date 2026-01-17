@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AccessiCap - Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Settings Cards */
+        .settings-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+
+        .section-icon {
+            font-size: 28px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Setting Items */
+        .setting-item {
+            margin-bottom: 25px;
+        }
+
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .setting-row:hover {
+            background: #f0f2f5;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 54px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: all 0.3s ease;
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: all 0.3s ease;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked+.toggle-slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        input:checked+.toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Form Controls */
+        .form-control {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        select.form-control {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23667eea' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 16px;
+            padding-right: 45px;
+        }
+
+        /* Sliders */
+        .slider-container {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .slider-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .slider-value {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .slider-track {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-min,
+        .slider-max {
+            font-size: 11px;
+            color: #888;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        /* Buttons */
+        .button-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e4e8ec;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        /* Server Status */
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-dot.online {
+            background: #27ae60;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: #e74c3c;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4);
+            }
+
+            50% {
+                opacity: 0.8;
+                box-shadow: 0 0 0 8px rgba(39, 174, 96, 0);
+            }
+        }
+
+        /* API Key Input */
+        .api-key-input {
+            position: relative;
+        }
+
+        .api-key-input input {
+            padding-right: 100px;
+        }
+
+        .api-key-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Help Section */
+        .help-card {
+            background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+            border: 1px solid #ffc107;
+        }
+
+        .help-list {
+            padding-left: 20px;
+        }
+
+        .help-list li {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .help-list li strong {
+            color: #333;
+        }
+
+        /* Keyboard Shortcuts */
+        .keyboard-shortcut {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .kbd {
+            background: #f0f2f5;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #ddd;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-weight: 600;
+            color: white;
+            z-index: 10000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>♿ AccessiCap Settings</h1>
+            <p>Configure your accessibility preferences</p>
+        </header>
+
+        <!-- AI Settings -->
+        <section class="settings-section">
+            <div class="section-header">
+                <span class="section-icon">🤖</span>
+                <h2 class="section-title">AI Image Processing</h2>
+            </div>
+
+            <div class="server-status">
+                <span class="status-dot offline" id="serverStatusDot"></span>
+                <span id="serverStatusText">Checking server status...</span>
+                <button class="btn btn-secondary" id="checkServerBtn" style="margin-left: auto; padding: 8px 16px;">
+                    🔄 Check
+                </button>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">🔄 Auto-Scan Pages</div>
+                        <div class="setting-description">Automatically scan for images when a page loads</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoCaption" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">✨ Highlight Processed Images</div>
+                        <div class="setting-description">Show visual indicator on images with AI descriptions</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="highlightProcessed" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label" style="margin-bottom: 10px;">🌐 Default Language</label>
+                <select id="language" class="form-control">
+                    <option value="en">🇺🇸 English</option>
+                    <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
+                    <option value="ne">🇳🇵 Nepali (नेपाली)</option>
+                    <option value="es">🇪🇸 Spanish (Español)</option>
+                    <option value="fr">🇫🇷 French (Français)</option>
+                    <option value="de">🇩🇪 German (Deutsch)</option>
+                    <option value="zh">🇨🇳 Chinese (中文)</option>
+                    <option value="ja">🇯🇵 Japanese (日本語)</option>
+                    <option value="ko">🇰🇷 Korean (한국어)</option>
+                    <option value="ar">🇸🇦 Arabic (العربية)</option>
+                    <option value="ru">🇷🇺 Russian (Русский)</option>
+                    <option value="pt">🇧🇷 Portuguese (Português)</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- TTS Settings -->
+        <section class="settings-section">
+            <div class="section-header">
+                <span class="section-icon">🔊</span>
+                <h2 class="section-title">Text-to-Speech</h2>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">🔊 Enable Text-to-Speech</div>
+                        <div class="setting-description">Click on images to hear their descriptions</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="enableTts" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">🗣️ Auto-Speak Descriptions</div>
+                        <div class="setting-description">Automatically read descriptions as images are processed</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoSpeak">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Speech Rate</span>
+                    <span class="slider-value" id="rateValue">1.0x</span>
+                </div>
+                <div class="slider-track">
+                    <span class="slider-min">0.5x</span>
+                    <input type="range" id="ttsRate" min="0.5" max="2" step="0.1" value="1">
+                    <span class="slider-max">2x</span>
+                </div>
+            </div>
+
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Speech Pitch</span>
+                    <span class="slider-value" id="pitchValue">1.0</span>
+                </div>
+                <div class="slider-track">
+                    <span class="slider-min">Low</span>
+                    <input type="range" id="ttsPitch" min="0.5" max="2" step="0.1" value="1">
+                    <span class="slider-max">High</span>
+                </div>
+            </div>
+
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Volume</span>
+                    <span class="slider-value" id="volumeValue">100%</span>
+                </div>
+                <div class="slider-track">
+                    <span class="slider-min">0%</span>
+                    <input type="range" id="ttsVolume" min="0" max="1" step="0.1" value="1">
+                    <span class="slider-max">100%</span>
+                </div>
+            </div>
+
+            <div class="button-row" style="margin-top: 20px;">
+                <button class="btn btn-success" id="testTtsBtn">🔊 Test TTS</button>
+                <button class="btn btn-danger" id="stopTtsBtn">⏹️ Stop</button>
+            </div>
+        </section>
+
+        <!-- Accessibility Settings -->
+        <section class="settings-section">
+            <div class="section-header">
+                <span class="section-icon">♿</span>
+                <h2 class="section-title">Accessibility Features</h2>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">🔲 High Contrast Mode</div>
+                        <div class="setting-description">Increase contrast for better visibility</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="highContrast">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">📖 Dyslexia-Friendly Font</div>
+                        <div class="setting-description">Use OpenDyslexic font for easier reading</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dyslexiaFont">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">📏 Reading Guide Line</div>
+                        <div class="setting-description">Show a guide line that follows your cursor</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="readingGuide">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">🅱️ Bold Text</div>
+                        <div class="setting-description">Make all text on pages bold for better readability</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="boldText">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">🔤 Large Captions</div>
+                        <div class="setting-description">Display bigger alt-text tooltips on images</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="largeCaptions" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label" style="margin-bottom: 10px;">👁️ Colorblind Mode</label>
+                <select id="colorblindMode" class="form-control">
+                    <option value="none">None (Normal Vision)</option>
+                    <option value="protanopia">Protanopia (Red-blind)</option>
+                    <option value="deuteranopia">Deuteranopia (Green-blind)</option>
+                    <option value="tritanopia">Tritanopia (Blue-blind)</option>
+                    <option value="achromatopsia">Achromatopsia (Grayscale)</option>
+                    <option value="enhanced">Enhanced Colors (Increased Saturation)</option>
+                </select>
+                <p style="font-size: 12px; color: #666; margin-top: 8px;">
+                    Adjust colors to help with color vision deficiency
+                </p>
+            </div>
+        </section>
+
+        <!-- Keyboard Shortcuts -->
+        <section class="settings-section">
+            <div class="section-header">
+                <span class="section-icon">⌨️</span>
+                <h2 class="section-title">Keyboard Shortcuts</h2>
+            </div>
+
+            <div class="keyboard-shortcut">
+                <span class="kbd">Alt + S</span>
+                <span>Scan current page for images</span>
+            </div>
+            <div class="keyboard-shortcut">
+                <span class="kbd">Alt + R</span>
+                <span>Read selected text aloud</span>
+            </div>
+        </section>
+
+        <!-- Help -->
+        <section class="settings-section help-card">
+            <div class="section-header">
+                <span class="section-icon">❓</span>
+                <h2 class="section-title">How to Use AccessiCap</h2>
+            </div>
+
+            <ul class="help-list">
+                <li><strong>Auto-Captioning:</strong> Images are automatically scanned and described when you visit a
+                    page</li>
+                <li><strong>Click to Listen:</strong> Click on any processed image to hear its description</li>
+                <li><strong>Right-Click Menu:</strong> Right-click on images for more options, or select text to read it
+                    aloud</li>
+                <li><strong>Popup Controls:</strong> Use the extension popup for quick access to settings and manual
+                    scanning</li>
+                <li><strong>Backend Server:</strong> Make sure the Python backend server is running for AI image
+                    processing</li>
+            </ul>
+
+            <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
+                <h4 style="margin-bottom: 10px;">🖥️ Starting the Backend Server</h4>
+                <code style="display: block; background: #f0f2f5; padding: 10px; border-radius: 6px; font-size: 13px;">
+          cd backend && python server.py
+        </code>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="button-row">
+            <button class="btn btn-primary" id="saveBtn">💾 Save Settings</button>
+            <button class="btn btn-secondary" id="resetBtn">🔄 Reset to Defaults</button>
+            <button class="btn btn-secondary" id="exportBtn">📤 Export Settings</button>
+            <button class="btn btn-secondary" id="importBtn">📥 Import Settings</button>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>AccessiCap v2.0 • AI-Powered Accessibility Extension</p>
+            <p>Final Year Project - Browser Extension for Accessible Web Browsing</p>
+        </footer>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="options.js"></script>
+</body>
+
+</html>

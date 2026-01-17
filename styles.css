@@ -1,0 +1,271 @@
+/* AccessiCap - Content Script Styles */
+
+.ac-processed {
+  outline: 3px solid #667eea !important;
+  outline-offset: 2px;
+  position: relative;
+  cursor: pointer !important;
+  transition: outline-color 0.3s ease;
+}
+
+.ac-processed:hover {
+  outline-color: #764ba2 !important;
+}
+
+.ac-processing {
+  outline: 3px dashed #f39c12 !important;
+  animation: ac-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ac-pulse {
+
+  0%,
+  100% {
+    outline-color: #f39c12;
+  }
+
+  50% {
+    outline-color: #e74c3c;
+  }
+}
+
+.ac-caption-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 400px;
+  min-width: 200px;
+  text-align: center;
+  z-index: 999999;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  line-height: 1.5;
+}
+
+.ac-caption-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 10px solid transparent;
+  border-top-color: #764ba2;
+}
+
+.ac-processed:hover .ac-caption-tooltip {
+  opacity: 1;
+  visibility: visible;
+  bottom: calc(100% + 15px);
+}
+
+.ac-large-captions .ac-caption-tooltip {
+  font-size: 20px !important;
+  padding: 20px 25px !important;
+  max-width: 500px !important;
+  font-weight: 600 !important;
+}
+
+/* TTS indicator */
+.ac-speaking {
+  outline: 3px solid #27ae60 !important;
+  animation: ac-speak-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes ac-speak-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 10px rgba(39, 174, 96, 0);
+  }
+}
+
+/* High contrast mode */
+.ac-high-contrast {
+  filter: contrast(1.4) !important;
+}
+
+.ac-high-contrast img {
+  filter: contrast(1.2) brightness(1.1) !important;
+}
+
+/*COLORBLIND MODES*/
+
+/* Protanopia*/
+.ac-colorblind-protanopia {
+  filter: url('#protanopia-filter') !important;
+}
+
+/* Deuteranopia*/
+.ac-colorblind-deuteranopia {
+  filter: url('#deuteranopia-filter') !important;
+}
+
+/* Tritanopia*/
+.ac-colorblind-tritanopia {
+  filter: url('#tritanopia-filter') !important;
+}
+
+/* Achromatopsia*/
+.ac-colorblind-achromatopsia {
+  filter: grayscale(100%) !important;
+}
+
+/* Enhanced colors mode*/
+.ac-colorblind-enhanced {
+  filter: saturate(1.5) !important;
+}
+
+/*BOLD TEXT MODE*/
+.ac-bold-text,
+.ac-bold-text * {
+  font-weight: bold !important;
+}
+
+.ac-bold-text p,
+.ac-bold-text span,
+.ac-bold-text div,
+.ac-bold-text a,
+.ac-bold-text li,
+.ac-bold-text td,
+.ac-bold-text th,
+.ac-bold-text h1,
+.ac-bold-text h2,
+.ac-bold-text h3,
+.ac-bold-text h4,
+.ac-bold-text h5,
+.ac-bold-text h6 {
+  font-weight: 700 !important;
+}
+
+/*DYSLEXIA-FRIENDLY FONT*/
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/dist/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.ac-dyslexia-font,
+.ac-dyslexia-font * {
+  font-family: 'OpenDyslexic', Arial, sans-serif !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.1em !important;
+  line-height: 1.6 !important;
+}
+
+/* Large cursor mode */
+.ac-large-cursor,
+.ac-large-cursor * {
+  cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="%23667eea"><polygon points="5,3 19,12 12,12 12,19"/></svg>') 0 0, auto !important;
+}
+
+.ac-focus-mode-active {
+  position: relative;
+}
+
+.ac-focus-mode-active::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 99998;
+  pointer-events: none;
+}
+
+.ac-focused-element {
+  position: relative;
+  z-index: 99999;
+  background: white;
+  box-shadow: 0 0 0 5px #667eea;
+}
+
+/* Reading guide line */
+.ac-reading-guide {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(102, 126, 234, 0.1) 40%,
+      rgba(102, 126, 234, 0.2) 50%,
+      rgba(102, 126, 234, 0.1) 60%,
+      transparent 100%);
+  pointer-events: none;
+  z-index: 999998;
+  transition: top 0.1s ease;
+}
+
+.ac-error {
+  outline: 3px solid #e74c3c !important;
+}
+
+.ac-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 10px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 9999999;
+  animation: ac-toast-in 0.3s ease forwards;
+}
+
+.ac-toast.ac-toast-out {
+  animation: ac-toast-out 0.3s ease forwards;
+}
+
+@keyframes ac-toast-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ac-toast-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+body.ac-high-contrast {
+  filter: contrast(1.4) !important;
+}
+
+body.ac-high-contrast img {
+  filter: contrast(1.2) brightness(1.1) !important;
+}
