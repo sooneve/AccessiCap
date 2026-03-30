@@ -1,0 +1,16 @@
+# AccessiCap Backend Dependencies
+fastapi>=0.104.0
+uvicorn>=0.24.0
+transformers>=4.35.0
+pillow>=10.0.0
+pydantic>=2.0.0
+
+# CPU-only PyTorch — keeps Docker image small (~700 MB) for free-tier cloud hosting
+# Full CUDA build is 3+ GB and not needed for inference on a CPU server
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
+
+# Translation libraries (googletrans can be unreliable, deep-translator is backup)
+googletrans==4.0.0-rc1
+deep-translator>=1.11.0

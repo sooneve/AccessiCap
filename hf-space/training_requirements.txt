@@ -1,0 +1,28 @@
+# Training Requirements for AccessiCap
+# Install with: pip install -r training_requirements.txt
+
+# Core ML libraries
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.35.0
+
+# Training utilities
+accelerate>=0.24.0
+datasets>=2.14.0
+evaluate>=0.4.0
+
+# LoRA/PEFT for efficient fine-tuning
+peft>=0.6.0
+
+# Image processing
+pillow>=10.0.0
+
+# Metrics and logging
+tensorboard>=2.14.0
+tqdm>=4.66.0
+
+# Optional: For faster training with Flash Attention (requires compatible GPU)
+# flash-attn>=2.3.0
+
+# Optional: For mixed precision training
+# bitsandbytes>=0.41.0
