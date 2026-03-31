@@ -1,0 +1,14 @@
+[
+    {
+        "image": "images/example1.jpg",
+        "caption": "A fluffy orange cat sleeping peacefully on a blue couch in a sunlit living room"
+    },
+    {
+        "image": "images/example2.jpg",
+        "caption": "A young woman with brown hair typing on a silver laptop at a wooden desk in a coffee shop"
+    },
+    {
+        "image": "images/example3.jpg",
+        "caption": "A golden retriever puppy jumping to catch a red frisbee in a grassy park on a sunny day"
+    }
+]
