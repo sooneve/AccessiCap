@@ -1,4 +1,11 @@
 // AccessiCap - Background Service Worker
+
+// ============================================================
+// SERVER URL — deployed via Google Cloud Run
+// ============================================================
+const SERVER_URL = 'https://accessicap-api-48829507981.us-central1.run.app';
+// For local development, swap to: 'http://127.0.0.1:8001'
+
 // Default settings
 const DEFAULT_SETTINGS = {
   language: 'en',
@@ -149,7 +156,7 @@ chrome.commands.onCommand.addListener((command) => {
 
 function analyzeImage(imageData, language) {
   return new Promise((resolve, reject) => {
-    fetch('http://127.0.0.1:8001/caption', {
+    fetch(`${SERVER_URL}/caption`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -239,6 +246,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true, settings });
       });
       return true;
+
+    case "fetchImageData":
+      fetchImageAsBase64(request.imageUrl)
+        .then((dataUrl) => sendResponse({ dataUrl }))
+        .catch((error) => {
+          console.error('Image fetch error:', error);
+          sendResponse({ dataUrl: null, error: true });
+        });
+      return true;
   }
 });
 
@@ -263,7 +279,7 @@ function speakText(text, lang, rate, pitch, volume) {
 
 function checkServerStatus() {
   return new Promise((resolve) => {
-    fetch('http://127.0.0.1:8001/health', { method: 'GET' })
+    fetch(`${SERVER_URL}/health`, { method: 'GET' })
       .then(response => resolve(response.ok))
       .catch(() => resolve(false));
   });
@@ -283,3 +299,29 @@ function updateBadge() {
 chrome.tabs.onActivated.addListener(() => {
   chrome.action.setBadgeText({ text: '' });
 });
+
+async function fetchImageAsBase64(imageUrl) {
+  if (!imageUrl) {
+    throw new Error('Missing image URL');
+  }
+
+  const response = await fetch(imageUrl, { credentials: 'omit' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: ${response.status}`);
+  }
+
+  const contentType = response.headers.get('content-type') || 'image/jpeg';
+  const buffer = await response.arrayBuffer();
+  const base64Data = arrayBufferToBase64(buffer);
+  return `data:${contentType};base64,${base64Data}`;
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}

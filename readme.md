@@ -219,6 +219,35 @@ Generate caption for an image.
 
 ---
 
+## 🎯 Improving Caption Accuracy (Custom Training)
+
+You can fine-tune or swap the captioning model for better accuracy on your own image dataset. The backend reads environment variables so you can point to a locally fine-tuned model or switch to a larger pretrained checkpoint.
+
+**Recommended workflow:**
+1. Fine-tune a BLIP model with your dataset using Hugging Face Transformers.
+2. Export the model to a local folder (or publish it to the Hugging Face Hub).
+3. Start the backend with a custom model name/path and generation settings:
+
+```bash
+# Example: use a fine-tuned local model folder
+CAPTION_MODEL_NAME=/path/to/your-finetuned-blip \
+CAPTION_NUM_BEAMS=5 \
+CAPTION_MAX_NEW_TOKENS=60 \
+CAPTION_MIN_LENGTH=5 \
+python backend/server.py
+```
+
+**Supported environment variables:**
+| Variable | Purpose | Default |
+|---|---|---|
+| `CAPTION_MODEL_NAME` | Hugging Face model ID or local path | `Salesforce/blip-image-captioning-base` |
+| `CAPTION_NUM_BEAMS` | Beam search width for better captions | `4` |
+| `CAPTION_MAX_NEW_TOKENS` | Max caption length | `50` |
+| `CAPTION_MIN_LENGTH` | Minimum caption length | `5` |
+| `CAPTION_PROMPT` | Optional prompt prefix for captions | (empty) |
+
+---
+
 ## 📸 Screenshots
 
 ### Extension Popup

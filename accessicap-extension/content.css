@@ -1,0 +1,188 @@
+/* Image processing states */
+.accessicap-processing {
+    opacity: 0.6;
+    filter: blur(2px);
+}
+
+.accessicap-enhanced {
+    border: 2px solid #667eea;
+    border-radius: 4px;
+}
+
+/* Image wrapper for badge */
+.accessicap-image-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* AI badge */
+.accessicap-badge {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: help;
+}
+
+/* High Contrast Mode */
+html.accessicap-high-contrast {
+    filter: contrast(150%) !important;
+}
+
+html.accessicap-high-contrast body {
+    background: #000 !important;
+    color: #fff !important;
+}
+
+html.accessicap-high-contrast a {
+    color: #ff0 !important;
+    text-decoration: underline !important;
+}
+
+html.accessicap-high-contrast button,
+html.accessicap-high-contrast input,
+html.accessicap-high-contrast select,
+html.accessicap-high-contrast textarea {
+    background: #222 !important;
+    color: #fff !important;
+    border: 2px solid #fff !important;
+}
+
+/* Dyslexia Font */
+html.accessicap-dyslexia-font,
+html.accessicap-dyslexia-font * {
+    font-family: 'Comic Sans MS', 'OpenDyslexic', Arial, sans-serif !important;
+    letter-spacing: 0.05em !important;
+    word-spacing: 0.1em !important;
+    line-height: 1.8 !important;
+}
+
+/* Translation Popup */
+.accessicap-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 999999;
+    min-width: 300px;
+    max-width: 500px;
+    animation: popupSlideIn 0.3s ease-out;
+}
+
+@keyframes popupSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.popup-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+}
+
+.popup-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.3s;
+}
+
+.popup-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.popup-content {
+    padding: 20px;
+}
+
+.translation-result {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f0f4ff;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.translation-original {
+    font-size: 13px;
+    color: #666;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 6px;
+}
+
+/* Notification */
+.accessicap-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 999999;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.3s ease;
+}
+
+.accessicap-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.accessicap-notification.success {
+    border-left: 4px solid #48bb78;
+    color: #2f855a;
+}
+
+.accessicap-notification.error {
+    border-left: 4px solid #f56565;
+    color: #c53030;
+}
+
+.accessicap-notification.info {
+    border-left: 4px solid #667eea;
+    color: #5568d3;
+}
+
+/* Focus indicators for accessibility */
+*:focus {
+    outline: 3px solid #667eea !important;
+    outline-offset: 2px !important;
+}

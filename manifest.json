@@ -12,6 +12,7 @@
   ],
   "host_permissions": [
     "http://127.0.0.1:8001/*",
+    "https://*.run.app/*",
     "<all_urls>"
   ],
   "action": {
@@ -42,7 +43,9 @@
       "css": [
         "styles.css"
       ],
-      "run_at": "document_end"
+      "run_at": "document_end",
+      "all_frames": true,
+      "match_about_blank": true
     }
   ],
   "commands": {

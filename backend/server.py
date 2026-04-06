@@ -2,22 +2,24 @@
 AccessiCap Backend Server
 AI-Powered Image Captioning with BLIP Model and Translation Support
 
-To run:
+To run locally:
     cd backend
     python server.py
 
-The server will start on http://127.0.0.1:8001
+The server will start on http://127.0.0.1:8001 by default.
+For cloud deployment, set HOST/PORT via environment variables.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import base64
 from io import BytesIO
 import logging
-import asyncio
+import threading
 import gc
+import os
 
 try:
     import torch
@@ -46,6 +48,11 @@ processor = None
 model = None
 translator = None
 models_loaded = False
+MODEL_NAME = os.getenv("CAPTION_MODEL_NAME", "Salesforce/blip-image-captioning-base")
+CAPTION_MAX_NEW_TOKENS = int(os.getenv("CAPTION_MAX_NEW_TOKENS", "50"))
+CAPTION_MIN_LENGTH = int(os.getenv("CAPTION_MIN_LENGTH", "5"))
+CAPTION_NUM_BEAMS = int(os.getenv("CAPTION_NUM_BEAMS", "4"))
+CAPTION_PROMPT = os.getenv("CAPTION_PROMPT", "").strip()
 
 SUPPORTED_LANGUAGES = {
     'en': 'English',
@@ -72,9 +79,9 @@ def load_models():
 
         from transformers import BlipProcessor, BlipForConditionalGeneration
         
-        logger.info("Loading BLIP image captioning model...")
-        processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-        model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+        logger.info("Using model: %s", MODEL_NAME)
+        processor = BlipProcessor.from_pretrained(MODEL_NAME)
+        model = BlipForConditionalGeneration.from_pretrained(MODEL_NAME)
 
         try:
             from googletrans import Translator
@@ -152,6 +159,7 @@ class HealthResponse(BaseModel):
     translator_available: bool
     message: str
     supported_languages: list
+    model_name: str
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -162,7 +170,8 @@ async def health_check():
         models_loaded=models_loaded,
         translator_available=translator is not None,
         message="Server is running" + (" and models are loaded" if models_loaded else " but models failed to load"),
-        supported_languages=list(SUPPORTED_LANGUAGES.keys())
+        supported_languages=list(SUPPORTED_LANGUAGES.keys()),
+        model_name=MODEL_NAME
     )
 
 
@@ -188,8 +197,14 @@ async def generate_caption(request: ImageRequest):
         img_bytes = base64.b64decode(image_data)
         image = Image.open(BytesIO(img_bytes)).convert("RGB")
         
-        inputs = processor(image, return_tensors="pt")
-        output = model.generate(**inputs, max_new_tokens=50)
+        prompt = CAPTION_PROMPT or None
+        inputs = processor(image, text=prompt, return_tensors="pt")
+        output = model.generate(
+            **inputs,
+            max_new_tokens=CAPTION_MAX_NEW_TOKENS,
+            min_length=CAPTION_MIN_LENGTH,
+            num_beams=CAPTION_NUM_BEAMS
+        )
         english_caption = processor.decode(output[0], skip_special_tokens=True)
         
         logger.info(f"Generated caption: {english_caption}")
@@ -241,6 +256,7 @@ async def root():
         "name": "AccessiCap API",
         "version": "2.0",
         "status": "running",
+        "model_name": MODEL_NAME,
         "endpoints": {
             "/health": "Check server health",
             "/caption": "Generate image caption (POST)",
@@ -251,26 +267,32 @@ async def root():
 
 @app.on_event("startup")
 async def startup_event():
-    """Load models on startup"""
-    load_models()
+    """Load models in background thread so server starts immediately.
+    Cloud Run health checks pass right away; model loads behind the scenes."""
+    t = threading.Thread(target=load_models, daemon=True)
+    t.start()
 
 
 if __name__ == "__main__":
     import uvicorn
-    
+
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "8001"))
+
     print("\n" + "="*50)
     print("  AccessiCap Backend Server")
     print("  AI-Powered Image Captioning")
     print("="*50)
+    print(f"\nStarting on: http://{host}:{port}")
     print("\nSupported Languages:")
     for code, name in SUPPORTED_LANGUAGES.items():
         print(f"  {code}: {name}")
     print("\n" + "="*50 + "\n")
-    
+
     uvicorn.run(
         app,
-        host="127.0.0.1",
-        port=8001,
+        host=host,
+        port=port,
         log_level="info"
     )
 

@@ -154,7 +154,7 @@
     body.classList.toggle('ac-high-contrast', !!settings.highContrast);
 
     body.classList.toggle('ac-dyslexia-font', !!settings.dyslexiaFont);
-    e
+
     body.classList.toggle('ac-bold-text', !!settings.boldText);
 
     body.classList.toggle('ac-large-captions', !!settings.largeCaptions);
@@ -318,8 +318,21 @@
       });
     } catch (e) {
       console.log('Fetch method failed:', e.message);
-      return null;
     }
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'fetchImageData',
+        imageUrl: img.src
+      });
+      if (response && response.dataUrl) {
+        return response.dataUrl;
+      }
+    } catch (e) {
+      console.log('Background fetch failed:', e.message);
+    }
+
+    return null;
   }
 
   function addCaptionTooltip(img, caption) {
