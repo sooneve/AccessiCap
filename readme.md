@@ -91,6 +91,39 @@ The server will start at `http://127.0.0.1:8001`
 
 ---
 
+## ☁️ Deploy Backend to Cloud (Firebase/Google Cloud Run)
+
+If you want the backend to run in the cloud, use **Google Cloud Run** (this can be managed from Firebase via Google Cloud integration).
+
+> **Important**: Cloudinary is great for image storage/CDN, but it does **not** host Python APIs like this FastAPI server.
+
+### Option A: Deploy with Cloud Run (recommended)
+
+1. Build and push container:
+```bash
+cd backend
+gcloud builds submit --tag gcr.io/<PROJECT_ID>/accessicap-api
+```
+
+2. Deploy service:
+```bash
+gcloud run deploy accessicap-api   --image gcr.io/<PROJECT_ID>/accessicap-api   --platform managed   --region us-central1   --allow-unauthenticated
+```
+
+3. Copy the Cloud Run URL and set it in your extension backend configuration.
+
+### Option B: Firebase Hosting + Cloud Run
+- Host extension docs/static pages on Firebase Hosting.
+- Keep FastAPI backend on Cloud Run.
+- Route calls from extension to your Cloud Run endpoint.
+
+### Environment variables for cloud
+- `HOST=0.0.0.0`
+- `PORT=8080` (Cloud Run injects this automatically)
+- `CORS_ORIGINS=https://your-extension-origin` (or `*` for testing)
+
+---
+
 ## 🚀 Usage
 
 ### Quick Start
@@ -136,7 +169,8 @@ accessicap/
 │   └── icon128.png
 ├── backend/             # Python backend server
 │   ├── server.py        # FastAPI server
-│   └── requirements.txt # Python dependencies
+│   ├── requirements.txt # Python dependencies
+│   └── Dockerfile       # Cloud Run container definition
 └── README.md            # This file
 ```
 

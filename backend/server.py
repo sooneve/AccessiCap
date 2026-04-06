@@ -36,9 +36,12 @@ app = FastAPI(
     version="2.0"
 )
 
+allowed_origins = [
+    origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",") if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins or ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,7 +76,7 @@ SUPPORTED_LANGUAGES = {
 def load_models():
     """Load AI models on startup"""
     global processor, model, translator, models_loaded
-    
+
     try:
         logger.info("Loading AI models...")
 
@@ -90,10 +93,10 @@ def load_models():
         except Exception as e:
             logger.warning(f"Google Translate not available: {e}")
             translator = None
-        
+
         models_loaded = True
         logger.info("✅ All models loaded successfully!")
-        
+
     except Exception as e:
         logger.error(f"❌ Error loading models: {e}")
         models_loaded = False
@@ -102,7 +105,7 @@ def load_models():
 def translate_text(text: str, target_lang: str) -> str:
     """Translate text with multiple fallback methods"""
     global translator
-    
+
     if not text or target_lang == 'en':
         return text
 
@@ -121,9 +124,8 @@ def translate_text(text: str, target_lang: str) -> str:
             try:
                 from googletrans import Translator
                 translator = Translator()
-            except:
+            except Exception:
                 pass
-    
 
     try:
         from deep_translator import GoogleTranslator
@@ -132,7 +134,7 @@ def translate_text(text: str, target_lang: str) -> str:
             logger.info(f"Deep Translated to {lang_code}: {result}")
             return result
     except ImportError:
-        pass  
+        pass
     except Exception as e:
         logger.warning(f"Deep translator failed: {e}")
 
@@ -141,7 +143,7 @@ def translate_text(text: str, target_lang: str) -> str:
 
 
 class ImageRequest(BaseModel):
-    imageData: str  
+    imageData: str
     language: str = "en"
 
 
@@ -178,22 +180,22 @@ async def health_check():
 @app.post("/caption", response_model=CaptionResponse)
 async def generate_caption(request: ImageRequest):
     """Generate a caption for the provided image"""
-    
+
     if not models_loaded:
         return CaptionResponse(
             caption="AI models not loaded. Please restart the server.",
             language=request.language,
             error="models_not_loaded"
         )
-    
+
     try:
         from PIL import Image
-        
+
         image_data = request.imageData
-        
+
         if "," in image_data:
-            header, image_data = image_data.split(",", 1)
-        
+            _, image_data = image_data.split(",", 1)
+
         img_bytes = base64.b64decode(image_data)
         image = Image.open(BytesIO(img_bytes)).convert("RGB")
         
@@ -206,26 +208,26 @@ async def generate_caption(request: ImageRequest):
             num_beams=CAPTION_NUM_BEAMS
         )
         english_caption = processor.decode(output[0], skip_special_tokens=True)
-        
+
         logger.info(f"Generated caption: {english_caption}")
-        
+
         target_lang = request.language.lower()
         translated = False
         final_caption = english_caption
-        
+
         if target_lang and target_lang != 'en':
             translated_caption = translate_text(english_caption, target_lang)
             if translated_caption != english_caption:
                 final_caption = translated_caption
                 translated = True
-        
+
         return CaptionResponse(
             caption=final_caption,
             language=target_lang,
             original_caption=english_caption if translated else None,
             translated=translated
         )
-        
+
     except Exception as e:
         logger.error(f"Error processing image: {e}")
         return CaptionResponse(
@@ -236,7 +238,7 @@ async def generate_caption(request: ImageRequest):
     finally:
         if TORCH_AVAILABLE and torch.cuda.is_available():
             torch.cuda.empty_cache()
-        
+
         gc.collect()
 
 
@@ -295,27 +297,3 @@ if __name__ == "__main__":
         port=port,
         log_level="info"
     )
-
-
-# ==============================================================================
-# HOW TO RUN THIS SERVER
-# ==============================================================================
-#
-# Step 1: Install dependencies (run once)
-#   pip install -r requirements.txt
-#
-# Step 2: Navigate to the backend folder
-#   cd backend
-#
-# Step 3: Run the server
-#   python server.py
-#
-# The server will start at: http://127.0.0.1:8001
-#
-# Step 4: To STOP the server
-#   Press Ctrl+C in the terminal
-#
-# Alternative: Run with uvicorn directly
-#   uvicorn server:app --host 127.0.0.1 --port 8001 --reload
-#
-# ==============================================================================#
