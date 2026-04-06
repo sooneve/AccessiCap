@@ -104,8 +104,6 @@ def load_models():
 
 def translate_text(text: str, target_lang: str) -> str:
     """Translate text with multiple fallback methods"""
-    global translator
-
     if not text or target_lang == 'en':
         return text
 
@@ -113,32 +111,35 @@ def translate_text(text: str, target_lang: str) -> str:
     if lang_code == 'zh':
         lang_code = 'zh-cn'
 
-    if translator:
-        try:
-            result = translator.translate(text, dest=lang_code)
-            if result and result.text:
-                logger.info(f"Translated to {lang_code}: {result.text}")
-                return result.text
-        except Exception as e:
-            logger.warning(f"Google Translate failed for {lang_code}: {e}")
-            try:
-                from googletrans import Translator
-                translator = Translator()
-            except Exception:
-                pass
-
+    # --- PRIORITY 1: Use Deep-Translator (more reliable) ---
     try:
         from deep_translator import GoogleTranslator
-        result = GoogleTranslator(source='en', target=lang_code).translate(text)
-        if result:
-            logger.info(f"Deep Translated to {lang_code}: {result}")
-            return result
-    except ImportError:
-        pass
+        logger.info(f"Attempting translation with deep-translator to {lang_code}...")
+        translated = GoogleTranslator(source='en', target=lang_code).translate(text)
+        if translated:
+            logger.info(f"Deep-Translator success: '{translated}'")
+            return translated
+        else:
+            logger.warning("Deep-Translator returned empty result.")
     except Exception as e:
-        logger.warning(f"Deep translator failed: {e}")
+        logger.warning(f"Deep-Translator failed: {e}")
 
-    logger.warning(f"Translation to {lang_code} failed, returning English")
+    # --- PRIORITY 2: Fallback to googletrans ---
+    try:
+        from googletrans import Translator
+        translator = Translator()
+        logger.info(f"Attempting translation with googletrans to {lang_code}...")
+        result = translator.translate(text, dest=lang_code)
+        if result and result.text:
+            logger.info(f"Googletrans success: '{result.text}'")
+            return result.text
+        else:
+            logger.warning("Googletrans returned empty result.")
+    except Exception as e:
+        logger.warning(f"Googletrans failed: {e}")
+
+    # --- If all else fails ---
+    logger.error(f"All translation methods failed for language '{target_lang}'. Returning original English text.")
     return text
 
 
