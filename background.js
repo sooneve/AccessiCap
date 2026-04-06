@@ -262,17 +262,42 @@ function speakText(text, lang, rate, pitch, volume) {
   chrome.tts.stop();
 
   chrome.storage.sync.get(['ttsRate', 'ttsPitch', 'ttsVolume', 'language'], (settings) => {
-    const options = {
-      lang: lang || settings.language || 'en',
+    // Basic options
+    let options = {
       rate: rate || settings.ttsRate || 1.0,
       pitch: pitch || settings.ttsPitch || 1.0,
-      volume: volume || settings.ttsVolume || 1.0
+      volume: volume || settings.ttsVolume || 1.0,
+      onEvent: function(event) {
+        if (event.type === 'error') {
+          console.error('TTS Error:', event.errorMessage);
+        }
+      }
     };
 
-    chrome.tts.speak(text, options, () => {
-      if (chrome.runtime.lastError) {
-        console.error('TTS Error:', chrome.runtime.lastError.message);
+    // --- Voice Selection Logic ---
+    chrome.tts.getVoices((voices) => {
+      let selectedVoice = null;
+      // 1. Try to find a voice that exactly matches the lang code (e.g., 'fr')
+      if (lang) {
+        selectedVoice = voices.find(voice => voice.lang === lang);
       }
+      // 2. If not found, try to find a voice that starts with the lang code (e.g., 'fr-FR' for 'fr')
+      if (!selectedVoice && lang) {
+        selectedVoice = voices.find(voice => voice.lang.startsWith(lang));
+      }
+      // 3. If still no voice, use the first available voice (browser default)
+      if (!selectedVoice && voices.length > 0) {
+        selectedVoice = voices[0];
+        console.warn(`No voice found for language '${lang}'. Using default voice: ${selectedVoice.voiceName}`);
+      }
+
+      if (selectedVoice) {
+        options.voiceName = selectedVoice.voiceName;
+        console.log(`Using TTS voice: ${selectedVoice.voiceName} (lang: ${selectedVoice.lang})`);
+      }
+
+      // Finally, speak the text
+      chrome.tts.speak(text, options);
     });
   });
 }
