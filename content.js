@@ -123,6 +123,16 @@
         readAllAltTexts();
         sendResponse({ success: true });
         break;
+
+      case 'webSpeakText':
+        webSpeechSpeak(request.text, request.lang, request.rate, request.pitch, request.volume);
+        sendResponse({ success: true });
+        break;
+
+      case 'stopSpeaking':
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        sendResponse({ success: true });
+        break;
     }
 
     return true;
@@ -367,6 +377,29 @@
     });
 
     showToast('🔊 Speaking...');
+  }
+
+  function webSpeechSpeak(text, lang, rate, pitch, volume) {
+    if (!('speechSynthesis' in window)) return;
+
+    window.speechSynthesis.cancel();
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang || 'en';
+    utter.rate = rate || 1.0;
+    utter.pitch = pitch || 1.0;
+    utter.volume = volume || 1.0;
+
+    // Try to find a matching voice; Web Speech API usually auto-selects correctly
+    const voices = window.speechSynthesis.getVoices();
+    const match = voices.find(v => v.lang === lang)
+      || voices.find(v => v.lang.startsWith(lang))
+      || null;
+    if (match) utter.voice = match;
+
+    utter.onerror = (e) => console.error('Web Speech error:', e.error);
+
+    window.speechSynthesis.speak(utter);
   }
 
   function getPageText() {

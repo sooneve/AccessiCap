@@ -64,9 +64,10 @@ model = None
 translator = None
 models_loaded = False
 MODEL_NAME = os.getenv("CAPTION_MODEL_NAME", "Salesforce/blip-image-captioning-base")
-CAPTION_MAX_NEW_TOKENS = int(os.getenv("CAPTION_MAX_NEW_TOKENS", "50"))
+CAPTION_MAX_NEW_TOKENS = int(os.getenv("CAPTION_MAX_NEW_TOKENS", "30"))
 CAPTION_MIN_LENGTH = int(os.getenv("CAPTION_MIN_LENGTH", "5"))
-CAPTION_NUM_BEAMS = int(os.getenv("CAPTION_NUM_BEAMS", "4"))
+CAPTION_NUM_BEAMS = int(os.getenv("CAPTION_NUM_BEAMS", "1"))  # 1=greedy (fast), 4=beam search (slow)
+CAPTION_MAX_IMAGE_SIZE = int(os.getenv("CAPTION_MAX_IMAGE_SIZE", "384"))  # resize before inference
 CAPTION_PROMPT = os.getenv("CAPTION_PROMPT", "").strip()
 
 SUPPORTED_LANGUAGES = {
@@ -214,13 +215,16 @@ async def generate_caption(request: ImageRequest):
 
         img_bytes = base64.b64decode(image_data)
         image = Image.open(BytesIO(img_bytes)).convert("RGB")
-        
+
+        # Resize to max 384px — BLIP doesn't gain quality beyond this
+        if max(image.size) > CAPTION_MAX_IMAGE_SIZE:
+            image.thumbnail((CAPTION_MAX_IMAGE_SIZE, CAPTION_MAX_IMAGE_SIZE), Image.LANCZOS)
+
         prompt = CAPTION_PROMPT or None
         inputs = processor(image, text=prompt, return_tensors="pt")
         output = model.generate(
             **inputs,
             max_new_tokens=CAPTION_MAX_NEW_TOKENS,
-            min_length=CAPTION_MIN_LENGTH,
             num_beams=CAPTION_NUM_BEAMS
         )
         english_caption = processor.decode(output[0], skip_special_tokens=True)

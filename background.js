@@ -261,45 +261,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function speakText(text, lang, rate, pitch, volume) {
+  // Stop any ongoing speech
   chrome.tts.stop();
 
   chrome.storage.sync.get(['ttsRate', 'ttsPitch', 'ttsVolume', 'language'], (settings) => {
-    // Basic options
-    let options = {
-      rate: rate || settings.ttsRate || 1.0,
-      pitch: pitch || settings.ttsPitch || 1.0,
-      volume: volume || settings.ttsVolume || 1.0,
-      onEvent: function(event) {
-        if (event.type === 'error') {
-          console.error('TTS Error:', event.errorMessage);
-        }
-      }
-    };
+    const speechLang = lang || settings.language || 'en';
+    const speechRate = rate || settings.ttsRate || 1.0;
+    const speechPitch = pitch || settings.ttsPitch || 1.0;
+    const speechVolume = volume || settings.ttsVolume || 1.0;
 
-    // --- Voice Selection Logic ---
-    chrome.tts.getVoices((voices) => {
-      let selectedVoice = null;
-      // 1. Try to find a voice that exactly matches the lang code (e.g., 'fr')
-      if (lang) {
-        selectedVoice = voices.find(voice => voice.lang === lang);
-      }
-      // 2. If not found, try to find a voice that starts with the lang code (e.g., 'fr-FR' for 'fr')
-      if (!selectedVoice && lang) {
-        selectedVoice = voices.find(voice => voice.lang.startsWith(lang));
-      }
-      // 3. If still no voice, use the first available voice (browser default)
-      if (!selectedVoice && voices.length > 0) {
-        selectedVoice = voices[0];
-        console.warn(`No voice found for language '${lang}'. Using default voice: ${selectedVoice.voiceName}`);
-      }
+    console.log(`TTS: Speaking in lang='${speechLang}', text='${text.substring(0, 50)}...'`);
 
-      if (selectedVoice) {
-        options.voiceName = selectedVoice.voiceName;
-        console.log(`Using TTS voice: ${selectedVoice.voiceName} (lang: ${selectedVoice.lang})`);
+    // --- Use Web Speech API for proper multi-language support ---
+    // chrome.tts requires OS-installed voices; Web Speech API uses Google's
+    // online engine which natively handles Hindi, Nepali, French, etc.
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: 'webSpeakText',
+          text: text,
+          lang: speechLang,
+          rate: speechRate,
+          pitch: speechPitch,
+          volume: speechVolume
+        }).catch(() => {
+          // Fallback to chrome.tts if content script not available
+          chrome.tts.speak(text, {
+            lang: speechLang,
+            rate: speechRate,
+            pitch: speechPitch,
+            volume: speechVolume,
+            onEvent: (e) => { if (e.type === 'error') console.error('TTS fallback error:', e.errorMessage); }
+          });
+        });
       }
-
-      // Finally, speak the text
-      chrome.tts.speak(text, options);
     });
   });
 }
