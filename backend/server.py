@@ -10,6 +10,7 @@ The server will start on http://127.0.0.1:8001 by default.
 For cloud deployment, set HOST/PORT via environment variables.
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,7 +18,7 @@ from typing import Optional
 import base64
 from io import BytesIO
 import logging
-import threading
+import threading  # used for non-blocking model load
 import gc
 import os
 
@@ -100,6 +101,19 @@ def load_models():
     except Exception as e:
         logger.error(f"❌ Error loading models: {e}")
         models_loaded = False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI lifespan: start model loading in background on startup.
+    Cloud Run health checks pass right away while the model warms up."""
+    t = threading.Thread(target=load_models, daemon=True)
+    t.start()
+    yield
+    # Shutdown: nothing to clean up explicitly
+
+# Attach lifespan now that load_models is defined
+app.router.lifespan_context = lifespan
 
 
 def translate_text(text: str, target_lang: str) -> str:
@@ -268,12 +282,7 @@ async def root():
     }
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Load models in background thread so server starts immediately.
-    Cloud Run health checks pass right away; model loads behind the scenes."""
-    t = threading.Thread(target=load_models, daemon=True)
-    t.start()
+# Models are loaded via the lifespan context manager above (FastAPI recommended approach).
 
 
 if __name__ == "__main__":
