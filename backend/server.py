@@ -266,6 +266,17 @@ async def get_languages():
     }
 
 
+@app.get("/debug/model_status")
+async def debug_model_status():
+    """Debug endpoint: confirm what is loaded in memory"""
+    return {
+        "models_loaded": models_loaded,
+        "processor": str(processor is not None),
+        "model": str(model is not None),
+        "translator": str(translator is not None)
+    }
+
+
 @app.get("/")
 async def root():
     """Root endpoint with API info"""

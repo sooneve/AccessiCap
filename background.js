@@ -310,6 +310,17 @@ function checkServerStatus() {
   });
 }
 
+async function checkBackendHealth() {
+  try {
+    const response = await fetch(`${SERVER_URL}/health`);
+    const data = await response.json();
+    return data.models_loaded === true;
+  } catch (error) {
+    console.error('Health check failed:', error);
+    return false;
+  }
+}
+
 function updateBadge() {
   if (sessionStats.imagesProcessed > 0) {
     chrome.action.setBadgeText({
