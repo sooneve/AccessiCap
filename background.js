@@ -1,10 +1,12 @@
 // AccessiCap - Background Service Worker
 
 // ============================================================
-// SERVER URL — deployed via Google Cloud Run
+// SERVER URL — change as needed
 // ============================================================
-const SERVER_URL = 'https://accessicap-api-48829507981.us-central1.run.app';
-// For local development, swap to: 'http://127.0.0.1:8001'
+// For local development:
+const SERVER_URL = 'http://127.0.0.1:8001';
+// For Cloud Run deployment, swap to:
+// const SERVER_URL = 'https://accessicap-api-48829507981.us-central1.run.app';
 
 // Default settings
 const DEFAULT_SETTINGS = {

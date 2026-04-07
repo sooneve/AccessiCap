@@ -31,10 +31,21 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AccessiCap")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load models at startup in a background thread.
+    The server becomes reachable immediately; model warms up behind the scenes."""
+    t = threading.Thread(target=lambda: load_models(), daemon=True)
+    t.start()
+    yield
+
+
 app = FastAPI(
     title="AccessiCap API",
     description="AI-Powered Image Captioning for Accessibility",
-    version="2.0"
+    version="2.0",
+    lifespan=lifespan
 )
 
 allowed_origins = [
@@ -103,17 +114,7 @@ def load_models():
         models_loaded = False
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """FastAPI lifespan: start model loading in background on startup.
-    Cloud Run health checks pass right away while the model warms up."""
-    t = threading.Thread(target=load_models, daemon=True)
-    t.start()
-    yield
-    # Shutdown: nothing to clean up explicitly
-
-# Attach lifespan now that load_models is defined
-app.router.lifespan_context = lifespan
+# lifespan is defined above and passed to FastAPI() directly
 
 
 def translate_text(text: str, target_lang: str) -> str:
