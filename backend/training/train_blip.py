@@ -98,7 +98,6 @@ def create_lora_model(model):
         raise ImportError("PEFT is required for LoRA training. Install with: pip install peft")
     
     lora_config = LoraConfig(
-        task_type=TaskType.SEQ_2_SEQ_LM,
         r=16,  
         lora_alpha=32, 
         lora_dropout=0.1,
@@ -162,7 +161,7 @@ def train(args):
         logging_steps=10,
         eval_strategy="epoch",
         save_strategy="epoch",
-        load_best_model_at_end=True,
+        load_best_model_at_end=False,
         push_to_hub=False,
         report_to="none",
         fp16=torch.cuda.is_available(), 
