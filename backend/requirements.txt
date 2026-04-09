@@ -8,9 +8,16 @@ pydantic>=2.0.0
 # CPU-only PyTorch — keeps Docker image small (~700 MB) for free-tier cloud hosting
 # Full CUDA build is 3+ GB and not needed for inference on a CPU server
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.1.0+cpu
-torchvision==0.16.0+cpu
+torch==2.6.0+cpu
+torchvision==0.21.0+cpu
+numpy<2
 
 # Translation libraries (googletrans can be unreliable, deep-translator is backup)
 googletrans==4.0.0-rc1
 deep-translator>=1.11.0
+
+# Optimization & Task Queues (Added for v2 Architecture)
+redis>=5.0.1
+celery>=5.3.6
+onnxruntime>=1.16.3
+gTTS>=2.4.0

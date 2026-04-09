@@ -186,6 +186,21 @@ function analyzeImage(imageData, language) {
   });
 }
 
+function pollResultTask(taskId) {
+  return new Promise((resolve, reject) => {
+    fetch(`${SERVER_URL}/result/${taskId}`, { method: 'GET' })
+      .then(response => {
+        if (!response.ok) throw new Error('Server error');
+        return response.json();
+      })
+      .then(data => resolve(data))
+      .catch(error => {
+        console.error('Poll error:', error);
+        resolve({ status: 'error', error: true });
+      });
+  });
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background received:', request.action);
 
@@ -204,6 +219,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             error: true
           });
         });
+      return true;
+
+    case "pollResult":
+      pollResultTask(request.taskId)
+        .then(result => sendResponse(result))
+        .catch(error => sendResponse({ status: 'error', error: true }));
       return true;
 
     case "speak":

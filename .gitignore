@@ -1,0 +1,22 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+
+# Environment 
+.env
+.env.*
+
+# AI Models (Do not push to github - too large)
+*.onnx
+*.pt
+*.bin
+*.h5
+*.zip
+
+# Node / JS
+node_modules/
+
+# OS Files
+.DS_Store
+Thumbs.db

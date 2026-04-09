@@ -1,51 +1,28 @@
 """
 AccessiCap Backend Server
-AI-Powered Image Captioning with BLIP Model and Translation Support
-
-To run locally:
-    cd backend
-    python server.py
-
-The server will start on http://127.0.0.1:8001 by default.
-For cloud deployment, set HOST/PORT via environment variables.
+AI-Powered Image Captioning with BLIP Model and Translation Support (v2 Optimized)
 """
 
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import base64
-from io import BytesIO
 import logging
-import threading  # used for non-blocking model load
-import gc
 import os
-
-try:
-    import torch
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
+import hashlib
+import json
+import redis.asyncio as redis
+from celery.result import AsyncResult
+from tasks import process_image_task
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AccessiCap")
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Load models at startup in a background thread.
-    The server becomes reachable immediately; model warms up behind the scenes."""
-    t = threading.Thread(target=lambda: load_models(), daemon=True)
-    t.start()
-    yield
-
-
 app = FastAPI(
     title="AccessiCap API",
-    description="AI-Powered Image Captioning for Accessibility",
-    version="2.0",
-    lifespan=lifespan
+    description="AI-Powered Image Captioning for Accessibility (Optimized)",
+    version="2.0"
 )
 
 allowed_origins = [
@@ -59,193 +36,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-processor = None
-model = None
-translator = None
-models_loaded = False
-MODEL_NAME = os.getenv("CAPTION_MODEL_NAME", "Salesforce/blip-image-captioning-base")
-CAPTION_MAX_NEW_TOKENS = int(os.getenv("CAPTION_MAX_NEW_TOKENS", "30"))
-CAPTION_MIN_LENGTH = int(os.getenv("CAPTION_MIN_LENGTH", "5"))
-CAPTION_NUM_BEAMS = int(os.getenv("CAPTION_NUM_BEAMS", "1"))  # 1=greedy (fast), 4=beam search (slow)
-CAPTION_MAX_IMAGE_SIZE = int(os.getenv("CAPTION_MAX_IMAGE_SIZE", "384"))  # resize before inference
-CAPTION_PROMPT = os.getenv("CAPTION_PROMPT", "").strip()
-
-SUPPORTED_LANGUAGES = {
-    'en': 'English',
-    'hi': 'Hindi',
-    'ne': 'Nepali',
-    'es': 'Spanish',
-    'fr': 'French',
-    'de': 'German',
-    'zh-cn': 'Chinese (Simplified)',
-    'ja': 'Japanese',
-    'ko': 'Korean',
-    'ar': 'Arabic',
-    'ru': 'Russian',
-    'pt': 'Portuguese'
-}
-
-
-def load_models():
-    """Load AI models on startup"""
-    global processor, model, translator, models_loaded
-
-    try:
-        logger.info("Loading AI models...")
-
-        from transformers import BlipProcessor, BlipForConditionalGeneration
-        
-        logger.info("Using model: %s", MODEL_NAME)
-        processor = BlipProcessor.from_pretrained(MODEL_NAME)
-        model = BlipForConditionalGeneration.from_pretrained(MODEL_NAME)
-
-        try:
-            from googletrans import Translator
-            translator = Translator()
-            logger.info("Google Translate initialized")
-        except Exception as e:
-            logger.warning(f"Google Translate not available: {e}")
-            translator = None
-
-        models_loaded = True
-        logger.info("✅ All models loaded successfully!")
-
-    except Exception as e:
-        logger.error(f"❌ Error loading models: {e}")
-        models_loaded = False
-
-
-# lifespan is defined above and passed to FastAPI() directly
-
-
-def translate_text(text: str, target_lang: str) -> str:
-    """Translate text with multiple fallback methods"""
-    if not text or target_lang == 'en':
-        return text
-
-    lang_code = target_lang.lower()
-    if lang_code == 'zh':
-        lang_code = 'zh-cn'
-
-    # --- PRIORITY 1: Use Deep-Translator (more reliable) ---
-    try:
-        from deep_translator import GoogleTranslator
-        logger.info(f"Attempting translation with deep-translator to {lang_code}...")
-        translated = GoogleTranslator(source='en', target=lang_code).translate(text)
-        if translated:
-            logger.info(f"Deep-Translator success: '{translated}'")
-            return translated
-        else:
-            logger.warning("Deep-Translator returned empty result.")
-    except Exception as e:
-        logger.warning(f"Deep-Translator failed: {e}")
-
-    # --- PRIORITY 2: Fallback to googletrans ---
-    try:
-        from googletrans import Translator
-        translator = Translator()
-        logger.info(f"Attempting translation with googletrans to {lang_code}...")
-        result = translator.translate(text, dest=lang_code)
-        if result and result.text:
-            logger.info(f"Googletrans success: '{result.text}'")
-            return result.text
-        else:
-            logger.warning("Googletrans returned empty result.")
-    except Exception as e:
-        logger.warning(f"Googletrans failed: {e}")
-
-    # --- If all else fails ---
-    logger.error(f"All translation methods failed for language '{target_lang}'. Returning original English text.")
-    return text
-
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+redis_client = redis.from_url(REDIS_URL, decode_responses=True)
 
 class ImageRequest(BaseModel):
     imageData: str
     language: str = "en"
-
 
 class CaptionResponse(BaseModel):
     caption: str
     language: str
     original_caption: Optional[str] = None
     translated: bool = False
+    task_id: Optional[str] = None
     error: Optional[str] = None
 
-
-class HealthResponse(BaseModel):
-    status: str
-    models_loaded: bool
-    translator_available: bool
-    message: str
-    supported_languages: list
-    model_name: str
-
-
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 async def health_check():
-    """Check if the server and models are ready"""
-    return HealthResponse(
-        status="healthy" if models_loaded else "degraded",
-        models_loaded=models_loaded,
-        translator_available=translator is not None,
-        message="Server is running" + (" and models are loaded" if models_loaded else " but models failed to load"),
-        supported_languages=list(SUPPORTED_LANGUAGES.keys()),
-        model_name=MODEL_NAME
-    )
-
+    """Check if the server is healthy."""
+    return {
+        "status": "healthy",
+        "message": "Server is running (V2 Celery Optimized)"
+    }
 
 @app.post("/caption", response_model=CaptionResponse)
 async def generate_caption(request: ImageRequest):
-    """Generate a caption for the provided image"""
-
-    if not models_loaded:
-        return CaptionResponse(
-            caption="AI models not loaded. Please restart the server.",
-            language=request.language,
-            error="models_not_loaded"
-        )
-
+    """
+    Generate a caption with Celery and Redis cache.
+    Returns immediately with a task_id if not cached.
+    """
     try:
-        from PIL import Image
-
         image_data = request.imageData
 
         if "," in image_data:
             _, image_data = image_data.split(",", 1)
 
         img_bytes = base64.b64decode(image_data)
-        image = Image.open(BytesIO(img_bytes)).convert("RGB")
-
-        # Resize to max 384px — BLIP doesn't gain quality beyond this
-        if max(image.size) > CAPTION_MAX_IMAGE_SIZE:
-            image.thumbnail((CAPTION_MAX_IMAGE_SIZE, CAPTION_MAX_IMAGE_SIZE), Image.LANCZOS)
-
-        prompt = CAPTION_PROMPT or None
-        inputs = processor(image, text=prompt, return_tensors="pt")
-        output = model.generate(
-            **inputs,
-            max_new_tokens=CAPTION_MAX_NEW_TOKENS,
-            num_beams=CAPTION_NUM_BEAMS
-        )
-        english_caption = processor.decode(output[0], skip_special_tokens=True)
-
-        logger.info(f"Generated caption: {english_caption}")
-
-        target_lang = request.language.lower()
-        translated = False
-        final_caption = english_caption
-
-        if target_lang and target_lang != 'en':
-            translated_caption = translate_text(english_caption, target_lang)
-            if translated_caption != english_caption:
-                final_caption = translated_caption
-                translated = True
-
+        
+        # Create cache key from image hash and language
+        image_hash = hashlib.sha256(img_bytes).hexdigest()
+        cache_key = f"caption:{image_hash}:{request.language}"
+        
+        # Check cache
+        cached = await redis_client.get(cache_key)
+        if cached:
+            data = json.loads(cached)
+            return CaptionResponse(
+                caption=data["caption"],
+                language=request.language,
+                original_caption=data["caption"] if data["translated_text"] == data["caption"] else None,
+                translated=data["translated_text"] != data["caption"]
+            )
+        
+        # Run inference in background using Celery
+        task = process_image_task.delay(img_bytes, request.language, cache_key=cache_key)
+        
         return CaptionResponse(
-            caption=final_caption,
-            language=target_lang,
-            original_caption=english_caption if translated else None,
-            translated=translated
+            caption="Processing image...", 
+            language=request.language,
+            task_id=task.id
         )
 
     except Exception as e:
@@ -255,71 +104,38 @@ async def generate_caption(request: ImageRequest):
             language=request.language,
             error=str(e)
         )
-    finally:
-        if TORCH_AVAILABLE and torch.cuda.is_available():
-            torch.cuda.empty_cache()
 
-        gc.collect()
-
-
-@app.get("/languages")
-async def get_languages():
-    """Get list of supported languages"""
-    return {
-        "languages": SUPPORTED_LANGUAGES,
-        "translator_available": translator is not None
-    }
-
-
-@app.get("/debug/model_status")
-async def debug_model_status():
-    """Debug endpoint: confirm what is loaded in memory"""
-    return {
-        "models_loaded": models_loaded,
-        "processor": str(processor is not None),
-        "model": str(model is not None),
-        "translator": str(translator is not None)
-    }
-
+@app.get("/result/{task_id}")
+async def get_result(task_id: str):
+    """Poll for the result of a caption generation task."""
+    result = AsyncResult(task_id)
+    if result.ready():
+        res_data = result.get()
+        return {"status": "completed", "result": res_data}
+    return {"status": "pending"}
 
 @app.get("/")
 async def root():
-    """Root endpoint with API info"""
     return {
-        "name": "AccessiCap API",
-        "version": "2.0",
+        "name": "AccessiCap API V2",
         "status": "running",
-        "model_name": MODEL_NAME,
         "endpoints": {
             "/health": "Check server health",
-            "/caption": "Generate image caption (POST)",
-            "/languages": "Get supported languages"
+            "/caption": "Submit image for processing",
+            "/result/{task_id}": "Poll for result"
         }
     }
 
-
-# Models are loaded via the lifespan context manager above (FastAPI recommended approach).
-
-
 if __name__ == "__main__":
     import uvicorn
-
     host = os.getenv("HOST", "127.0.0.1")
     port = int(os.getenv("PORT", "8001"))
-
+    
     print("\n" + "="*50)
-    print("  AccessiCap Backend Server")
+    print("  AccessiCap V2 Backend Server")
     print("  AI-Powered Image Captioning")
     print("="*50)
     print(f"\nStarting on: http://{host}:{port}")
-    print("\nSupported Languages:")
-    for code, name in SUPPORTED_LANGUAGES.items():
-        print(f"  {code}: {name}")
     print("\n" + "="*50 + "\n")
-
-    uvicorn.run(
-        app,
-        host=host,
-        port=port,
-        log_level="info"
-    )
+    
+    uvicorn.run(app, host=host, port=port, log_level="info")

@@ -239,7 +239,11 @@
     if (toProcess.length > 0) {
       showToast(`🔍 Scanning ${toProcess.length} images...`);
       toProcess.forEach((img, index) => {
-        setTimeout(() => processImage(img), index * 300);
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => processImage(img), { timeout: 2000 });
+        } else {
+          setTimeout(() => processImage(img), index * 300);
+        }
       });
     } else if (force) {
       showToast('✅ No new images to process');
@@ -264,32 +268,13 @@
       });
 
       if (response && response.caption && response.error !== true) {
-        img.alt = response.caption;
-        img.title = `AI: ${response.caption}`;
-
-        img.classList.remove('ac-processing');
-        if (settings.highlightProcessed) {
-          img.classList.add('ac-processed');
+        // Handle pending task from Celery
+        if (response.task_id) {
+          pollForResult(response.task_id, img, speakResult);
+          return;
         }
-
-        addCaptionTooltip(img, response.caption);
-
-        processedImages.add(img.src);
-
-        if (settings.enableTts) {
-          img.style.cursor = 'pointer';
-          img.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            speakText(response.caption);
-          };
-        }
-
-        if (speakResult || settings.autoSpeak) {
-          speakText(response.caption);
-        }
-
-        console.log('AccessiCap: Processed -', response.caption);
+        
+        applyCaptionToImage(img, response.caption, response.audio_base64, speakResult);
       } else {
         throw new Error('Server offline or image failed');
       }
@@ -298,6 +283,66 @@
       console.log('AccessiCap: Skipping image -', error.message);
       img.classList.remove('ac-processing');
     }
+  }
+
+  function applyCaptionToImage(img, caption, audioBase64, speakResult) {
+    img.alt = caption;
+    img.title = `AI: ${caption}`;
+
+    img.classList.remove('ac-processing');
+    if (settings.highlightProcessed) {
+      img.classList.add('ac-processed');
+    }
+
+    addCaptionTooltip(img, caption);
+    processedImages.add(img.src);
+
+    if (settings.enableTts) {
+      img.style.cursor = 'pointer';
+      img.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (audioBase64) {
+           const audio = new Audio(`data:audio/wav;base64,${audioBase64}`);
+           audio.play();
+        } else {
+           speakText(caption);
+        }
+      };
+    }
+
+    if (speakResult || settings.autoSpeak) {
+      if (audioBase64) {
+         const audio = new Audio(`data:audio/wav;base64,${audioBase64}`);
+         audio.play();
+      } else {
+         speakText(caption);
+      }
+    }
+    console.log('AccessiCap: Processed -', caption);
+  }
+
+  async function pollForResult(taskId, img, speakResult) {
+    const check = async () => {
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: 'pollResult',
+          taskId: taskId
+        });
+        
+        if (response && response.status === 'completed' && response.result) {
+          applyCaptionToImage(img, response.result.caption, response.result.audio_base64, speakResult);
+        } else if (response && response.status === 'error') {
+          console.log('AccessiCap: Task failed');
+          img.classList.remove('ac-processing');
+        } else {
+          setTimeout(check, 1000);
+        }
+      } catch(e) {
+        setTimeout(check, 1000);
+      }
+    };
+    check();
   }
 
   async function getImageAsBase64(img) {
