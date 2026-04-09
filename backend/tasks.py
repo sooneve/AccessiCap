@@ -77,17 +77,31 @@ def generate_caption(image_bytes: bytes) -> str:
 
     with torch.no_grad():
         if ort_session is not None:
-            # Fast path: ONNX encoder → inject hidden states into decoder
+            # Fast path: ONNX encoder → inject hidden states into text_decoder directly
             pixel_np = inputs["pixel_values"].numpy()
             encoder_hidden = ort_session.run(
                 None, {"pixel_values": pixel_np}
             )[0]                                          # (1, seq, hidden)
-            encoder_hidden_t = torch.from_numpy(encoder_hidden)
+            image_embeds = torch.from_numpy(encoder_hidden)
 
-            # Use the model's text decoder with pre-computed image features
-            output_ids = blip_model.generate(
-                pixel_values=inputs["pixel_values"],      # still needed internally
-                encoder_hidden_states=encoder_hidden_t,
+            # Replicate BLIP generation setup to bypass PyTorch vision_model entirely
+            batch_size = image_embeds.shape[0]
+            image_attention_mask = torch.ones(image_embeds.size()[:-1], dtype=torch.long, device=image_embeds.device)
+            
+            # Start token
+            input_ids = (
+                torch.LongTensor([[blip_model.decoder_input_ids, blip_model.config.text_config.eos_token_id]])
+                .repeat(batch_size, 1)
+                .to(image_embeds.device)
+            )
+            input_ids[:, 0] = blip_model.config.text_config.bos_token_id
+
+            output_ids = blip_model.text_decoder.generate(
+                input_ids=input_ids[:, :-1],
+                eos_token_id=blip_model.config.text_config.sep_token_id,
+                pad_token_id=blip_model.config.text_config.pad_token_id,
+                encoder_hidden_states=image_embeds,
+                encoder_attention_mask=image_attention_mask,
                 max_new_tokens=50,
             )
         else:

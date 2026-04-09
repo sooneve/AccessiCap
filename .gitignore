@@ -20,3 +20,7 @@ node_modules/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Redis
+backend/redis-windows/
+backend/redis-windows.zip
