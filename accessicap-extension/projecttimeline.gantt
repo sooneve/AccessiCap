@@ -1,0 +1,88 @@
+ProjectTimeline.gantt
+
+{
+"data": [
+{
+"TaskID": 1,
+"TaskName": "Requirement Analysis and Design",
+"StartDate": "2025-09-01T00:00:00",
+"EndDate": "2025-10-31T23:59:59",
+"Predecessor": "",
+"resources": [{"resourceId": "Team", "resourceName": "Team"}],
+"Progress": 0,
+"color": "31"
+},
+{
+"TaskID": 2,
+"TaskName": "Browser Extension Development",
+"StartDate": "2025-09-15T00:00:00",
+"EndDate": "2025-11-30T23:59:59",
+"Predecessor": "1",
+"resources": [{"resourceId": "Developers", "resourceName": "Developers"}],
+"Progress": 0,
+"color": "61"
+},
+{
+"TaskID": 3,
+"TaskName": "Backend and AI Integration",
+"StartDate": "2025-11-01T00:00:00",
+"EndDate": "2026-01-31T23:59:59",
+"Predecessor": "2",
+"resources": [{"resourceId": "AI Engineers", "resourceName": "AI Engineers"}],
+"Progress": 0,
+"color": "91"
+},
+{
+"TaskID": 4,
+"TaskName": "Accessibility Features",
+"StartDate": "2025-11-15T00:00:00",
+"EndDate": "2026-01-31T23:59:59",
+"Predecessor": "2",
+"resources": [{"resourceId": "Frontend Devs", "resourceName": "Frontend Devs"}],
+"Progress": 0,
+"color": "121"
+},
+{
+"TaskID": 5,
+"TaskName": "GitHub Initial Commit",
+"StartDate": "2026-01-15T00:00:00",
+"EndDate": "2026-01-31T23:59:59",
+"Predecessor": "3,4",
+"resources": [{"resourceId": "DevOps", "resourceName": "DevOps"}],
+"Progress": 0,
+"color": "151"
+},
+{
+"TaskID": 6,
+"TaskName": "Testing and Optimization",
+"StartDate": "2026-02-01T00:00:00",
+"EndDate": "2026-04-30T23:59:59",
+"Predecessor": "5",
+"resources": [{"resourceId": "QA Team", "resourceName": "QA Team"}],
+"Progress": 0,
+"color": "181"
+},
+{
+"TaskID": 7,
+"TaskName": "Documentation and Finalization",
+"StartDate": "2025-12-01T00:00:00",
+"EndDate": "2026-04-30T23:59:59",
+"Predecessor": "3",
+"resources": [{"resourceId": "Writers", "resourceName": "Writers"}],
+"Progress": 0,
+"color": "211"
+}
+],
+"resources": [
+{"resourceId": "Team", "resourceName": "Team"},
+{"resourceId": "Developers", "resourceName": "Developers"},
+{"resourceId": "AI Engineers", "resourceName": "AI Engineers"},
+{"resourceId": "Frontend Devs", "resourceName": "Frontend Devs"},
+{"resourceId": "DevOps", "resourceName": "DevOps"},
+{"resourceId": "QA Team", "resourceName": "QA Team"},
+{"resourceId": "Writers", "resourceName": "Writers"}
+],
+"advanced": {
+"workWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+}
+}

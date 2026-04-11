@@ -108,11 +108,18 @@ async def generate_caption(request: ImageRequest):
 @app.get("/result/{task_id}")
 async def get_result(task_id: str):
     """Poll for the result of a caption generation task."""
-    result = AsyncResult(task_id)
-    if result.ready():
-        res_data = result.get()
-        return {"status": "completed", "result": res_data}
-    return {"status": "pending"}
+    try:
+        result = AsyncResult(task_id)
+        if result.ready():
+            if result.successful():
+                res_data = result.get()
+                return {"status": "completed", "result": res_data}
+            else:
+                return {"status": "error", "error": str(result.result)}
+        return {"status": "pending"}
+    except Exception as e:
+        logger.error(f"Error polling task {task_id}: {e}")
+        return {"status": "error", "error": str(e)}
 
 @app.get("/")
 async def root():

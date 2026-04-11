@@ -254,6 +254,15 @@
     img.classList.add('ac-processing');
     img.classList.remove('ac-processed', 'ac-error');
 
+    if (settings.enableTts) {
+      img.style.cursor = 'wait';
+      img.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        speakText('Image is currently being processed. Please wait.');
+      };
+    }
+
     try {
       const imageData = await getImageAsBase64(img);
 
@@ -282,6 +291,10 @@
     } catch (error) {
       console.log('AccessiCap: Skipping image -', error.message);
       img.classList.remove('ac-processing');
+      if (img.onclick) {
+        img.onclick = null;
+        img.style.cursor = '';
+      }
     }
   }
 
@@ -333,8 +346,12 @@
         if (response && response.status === 'completed' && response.result) {
           applyCaptionToImage(img, response.result.caption, response.result.audio_base64, speakResult);
         } else if (response && response.status === 'error') {
-          console.log('AccessiCap: Task failed');
+          console.error('AccessiCap: Task failed -', response.error);
           img.classList.remove('ac-processing');
+          if (img.onclick) {
+            img.onclick = null;
+            img.style.cursor = '';
+          }
         } else {
           setTimeout(check, 1000);
         }
@@ -427,7 +444,9 @@
   function webSpeechSpeak(text, lang, rate, pitch, volume) {
     if (!('speechSynthesis' in window)) return;
 
-    window.speechSynthesis.cancel();
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+      window.speechSynthesis.cancel();
+    }
 
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = lang || 'en';
@@ -442,9 +461,15 @@
       || null;
     if (match) utter.voice = match;
 
-    utter.onerror = (e) => console.error('Web Speech error:', e.error);
+    utter.onerror = (e) => {
+      if (e.error !== 'interrupted' && e.error !== 'canceled') {
+        console.error('Web Speech error:', e.error);
+      }
+    };
 
-    window.speechSynthesis.speak(utter);
+    setTimeout(() => {
+      window.speechSynthesis.speak(utter);
+    }, 50);
   }
 
   function getPageText() {

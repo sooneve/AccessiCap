@@ -129,15 +129,9 @@ def translate_and_speak(text: str, target_lang: str):
             translated_text = text
             tts_lang = "en"
 
-    try:
-        tts = gTTS(text=translated_text, lang=tts_lang)
-        buf = io.BytesIO()
-        tts.write_to_fp(buf)
-        buf.seek(0)
-        audio_base64 = base64.b64encode(buf.read()).decode()
-    except Exception as exc:
-        print(f"[tts] TTS failed: {exc}")
-        audio_base64 = None
+    # Skip backend TTS entirely to improve performance. The client extension
+    # will fall back to using browser native Text-to-Speech instantly instead.
+    audio_base64 = None
 
     return audio_base64, translated_text
 
