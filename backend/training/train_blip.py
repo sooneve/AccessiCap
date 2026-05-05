@@ -153,6 +153,7 @@ def train(args):
     training_args = TrainingArguments(
         output_dir=str(output_dir),
         num_train_epochs=args.epochs,
+        learning_rate=args.learning_rate,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         warmup_steps=100,
@@ -161,10 +162,12 @@ def train(args):
         logging_steps=10,
         eval_strategy="epoch",
         save_strategy="epoch",
-        load_best_model_at_end=False,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         push_to_hub=False,
         report_to="none",
-        fp16=torch.cuda.is_available(), 
+        fp16=torch.cuda.is_available(),
     )
     
     trainer = Trainer(
