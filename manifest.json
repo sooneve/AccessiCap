@@ -60,6 +60,12 @@
         "default": "Alt+R"
       },
       "description": "Read selected text aloud"
+    },
+    "toggle-magnifier": {
+      "suggested_key": {
+        "default": "Alt+M"
+      },
+      "description": "Toggle magnifying glass"
     }
   },
   "web_accessible_resources": [

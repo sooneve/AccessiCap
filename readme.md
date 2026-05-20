@@ -14,42 +14,42 @@
 
 ---
 
-## 🌟 Features
+## Features
 
-### 1. 🤖 Automatic Alt-Text Generation
+### 1.  Automatic Alt-Text Generation
 - AI-powered image descriptions using BLIP (Bootstrapping Language-Image Pre-training)
 - Automatically detects and processes images as you browse
 - Context-aware understanding of image content
 
-### 2. ⚡ Real-Time Processing
+### 2. Real-Time Processing
 - Processes images as they load on the page
 - MutationObserver detects dynamically loaded content
 - Visual indicators show processing status
 
-### 3. 🌐 Multilingual Language Support
+### 3. Multilingual Language Support
 - **12 Languages**: English, Hindi, Nepali, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Russian, Portuguese
 - AI captions translated to user's preferred language
 - Language-specific TTS voices
 
-### 4. 🔊 Text-to-Speech (TTS) Accessibility
+### 4. Text-to-Speech (TTS) Accessibility
 - Click on any image to hear its description
 - Right-click context menu to read selected text
 - Customizable voice, speed, pitch, and volume
 - Keyboard shortcut: `Alt + R` to read selection
 
-### 5. ♿ Accessibility Features
+### 5. Accessibility Features
 - **High Contrast Mode**: Enhanced visibility
 - **Dyslexia-Friendly Font**: OpenDyslexic font support
 - **Reading Guide**: Line that follows your cursor
 - **Visual Highlights**: Processed images are outlined
 
-### 6. 🖱️ Browser-Level Integration
+### 6. Browser-Level Integration
 - Context menu options for images and text
 - Keyboard shortcuts for quick access
 - Badge notifications showing processed images
 - Seamless Chrome/Edge integration
 
-### 7. ⚙️ User-Customizable Settings
+### 7. User-Customizable Settings
 - Full options page with all settings
 - Export/Import settings
 - Per-session statistics
@@ -57,7 +57,7 @@
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### Step 1: Clone or Download
 ```bash
@@ -82,6 +82,21 @@ pip install -r requirements.txt
 4. Select the project folder (the one containing `manifest.json`)
 
 ### Step 4: Start the Backend Server
+
+The **AccessiCap V2** backend relies on Redis and Celery to process AI tasks quickly without hanging the browser.
+
+1. **Start Redis Server** (Required for task queueing)
+Ensure your Redis server is running (default: `redis://localhost:6379/0`).
+
+2. **Start the Celery Worker**
+Open a new terminal:
+```bash
+cd backend
+celery -A tasks worker --loglevel=info -P solo
+```
+
+3. **Start the FastAPI Server**
+Open another terminal:
 ```bash
 cd backend
 python server.py
@@ -91,7 +106,7 @@ The server will start at `http://127.0.0.1:8001`
 
 ---
 
-## ☁️ Deploy Backend to Cloud (Firebase/Google Cloud Run)
+## Deploy Backend to Cloud (Firebase/Google Cloud Run)
 
 If you want the backend to run in the cloud, use **Google Cloud Run** (this can be managed from Firebase via Google Cloud integration).
 
@@ -124,7 +139,7 @@ gcloud run deploy accessicap-api   --image gcr.io/<PROJECT_ID>/accessicap-api   
 
 ---
 
-## 🚀 Usage
+## Usage
 
 ### Quick Start
 1. **Start the backend server** (see Step 4 above)
@@ -151,7 +166,7 @@ gcloud run deploy accessicap-api   --image gcr.io/<PROJECT_ID>/accessicap-api   
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 accessicap/
@@ -176,7 +191,7 @@ accessicap/
 
 ---
 
-## 🔧 Technical Architecture
+## Technical Architecture
 
 ### Frontend (Browser Extension)
 
@@ -192,17 +207,22 @@ accessicap/
 │        │                │                   │           │
 │        └────────────────┼───────────────────┘           │
 │                         │                               │
-│              Chrome Storage API                         │
+│              Chrome API (Storage, Web Speech)           │
 └─────────────────────────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│                   Backend Server                         │
+│                   Backend Server (V2)                    │
 │                                                          │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │
-│  │  FastAPI    │  │  BLIP       │  │  Google         │ │
-│  │  Server     │  │  AI Model   │  │  Translate      │ │
+│  │  FastAPI    │─▶│   Redis     │─▶│  Celery Worker  │ │
 │  └─────────────┘  └─────────────┘  └─────────────────┘ │
+│                                             │            │
+│                                             ▼            │
+│                                    ┌─────────────────┐ │
+│                                    │  BLIP AI Model  │ │
+│                                    │ (ONNX Pipeline) │ │
+│                                    └─────────────────┘ │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -218,7 +238,7 @@ accessicap/
 
 ---
 
-## 🛠️ API Endpoints
+## API Endpoints
 
 ### `GET /health`
 Check server status and model availability.
@@ -253,7 +273,7 @@ Generate caption for an image.
 
 ---
 
-## 🎯 Improving Caption Accuracy (Custom Training)
+## Improving Caption Accuracy (Custom Training)
 
 You can fine-tune or swap the captioning model for better accuracy on your own image dataset. The backend reads environment variables so you can point to a locally fine-tuned model or switch to a larger pretrained checkpoint.
 
@@ -282,7 +302,7 @@ python backend/server.py
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ### Extension Popup
 The main control panel accessible from the browser toolbar.
@@ -295,7 +315,7 @@ Images are highlighted and show tooltips with AI descriptions.
 
 ---
 
-## 🔬 Technologies Used
+## Technologies Used
 
 ### Frontend
 - **Manifest V3** - Latest Chrome extension standard
@@ -312,7 +332,7 @@ Images are highlighted and show tooltips with AI descriptions.
 
 ---
 
-## 📋 Requirements
+## Requirements
 
 ### System Requirements
 - **OS**: Windows 10/11, macOS, Linux
@@ -326,16 +346,19 @@ Images are highlighted and show tooltips with AI descriptions.
 fastapi>=0.104.0
 uvicorn>=0.24.0
 transformers>=4.35.0
-torch>=2.0.0
-torchvision>=0.15.0
+torch==2.6.0+cpu
+onnxruntime>=1.16.3
+celery>=5.3.6
+redis>=5.0.1
 pillow>=10.0.0
 googletrans==4.0.0-rc1
+deep-translator>=1.11.0
 pydantic>=2.0.0
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Server Not Connecting
 1. Ensure the backend server is running: `python backend/server.py`
@@ -359,7 +382,7 @@ pydantic>=2.0.0
 
 ---
 
-## 🎓 For Final Year Project Demonstration
+## For Final Year Project Demonstration
 
 ### Key Technical Highlights
 
@@ -390,17 +413,21 @@ pydantic>=2.0.0
 
 ---
 
-## 📝 License
+## License
 
 This project is developed for educational purposes as a Final Year Project.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Salesforce Research** - BLIP Model
 - **Hugging Face** - Transformers Library
 - **FastAPI** - Modern Python Framework
+- **Celery & Redis** - Task queueing and message broker
+- **ONNX Runtime** - High-performance ML inference
+- **OpenDyslexic** - Open-source dyslexia-friendly font
+- **W3C / Mozilla** - Browser Web Speech API
 - **Google** - Translation API
 
 ---

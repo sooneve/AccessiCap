@@ -269,3 +269,89 @@ body.ac-high-contrast {
 body.ac-high-contrast img {
   filter: contrast(1.2) brightness(1.1) !important;
 }
+
+/* =============================================
+   MAGNIFIER / ZOOM LENS
+   ============================================= */
+
+#ac-magnifier-lens {
+  position: fixed;
+  pointer-events: none;
+  z-index: 2147483647; /* always on top */
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 4px rgba(102, 126, 234, 0.9),
+    0 0 0 7px rgba(118, 75, 162, 0.45),
+    0 8px 40px rgba(0, 0, 0, 0.55);
+  background: transparent;
+  transform: translate(-50%, -50%);
+  transition: width 0.18s cubic-bezier(.4,0,.2,1),
+              height 0.18s cubic-bezier(.4,0,.2,1);
+  will-change: left, top;
+  /* The actual magnified content is rendered via canvas inside */
+}
+
+#ac-magnifier-canvas {
+  display: block;
+  border-radius: 50%;
+}
+
+#ac-magnifier-badge {
+  position: fixed;
+  pointer-events: none;
+  z-index: 2147483647;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  white-space: nowrap;
+  transform: translate(-50%, 0);
+  transition: opacity 0.2s ease;
+  opacity: 0;
+}
+
+#ac-magnifier-badge.ac-magnifier-badge-visible {
+  opacity: 1;
+}
+
+#ac-magnifier-hint {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 2147483647;
+  background: linear-gradient(135deg, rgba(102,126,234,0.95) 0%, rgba(118,75,162,0.95) 100%);
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: ac-toast-in 0.3s ease forwards;
+}
+
+#ac-magnifier-hint span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#ac-magnifier-hint kbd {
+  background: rgba(255,255,255,0.2);
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.35);
+}

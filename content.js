@@ -23,6 +23,29 @@
   const processedImages = new Set();
   let readingGuideElement = null;
 
+  // ── Magnifier state ──────────────────────────────────────────
+  const MAGNIFIER_LENS_SIZE   = 220;   // px diameter of the lens
+  const MAGNIFIER_ZOOM_MIN    = 1.5;
+  const MAGNIFIER_ZOOM_MAX    = 8.0;
+  const MAGNIFIER_ZOOM_STEP   = 0.5;
+  const MAGNIFIER_REFRESH_MS  = 150;   // screenshot refresh interval
+
+  let magnifierActive         = false;
+  let magnifierZoom           = 2.5;
+  let magnifierMouseX         = 0;
+  let magnifierMouseY         = 0;
+  let magnifierLens           = null;
+  let magnifierCanvas         = null;
+  let magnifierCtx            = null;
+  let magnifierBadge          = null;
+  let magnifierHint           = null;
+  let magnifierScreenshot     = null;  // current Image object from background
+  let magnifierRafId          = null;
+  let magnifierRefreshTimer   = null;
+  let magnifierBadgeTimer     = null;
+  let magnifierZoomKeyLocked  = false; // prevents zoom repeat while key held
+  // ─────────────────────────────────────────────────────────────
+
   init();
 
   function init() {
@@ -131,6 +154,21 @@
 
       case 'stopSpeaking':
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        sendResponse({ success: true });
+        break;
+
+      case 'toggleMagnifier':
+        toggleMagnifier();
+        sendResponse({ success: true });
+        break;
+
+      case 'magnifierScreenshot':
+        // Background sends a fresh data-URL screenshot
+        if (request.dataUrl && magnifierActive) {
+          const img = new Image();
+          img.onload = () => { magnifierScreenshot = img; };
+          img.src = request.dataUrl;
+        }
         sendResponse({ success: true });
         break;
     }
@@ -552,6 +590,219 @@
       toast.classList.add('ac-toast-out');
       setTimeout(() => toast.remove(), 300);
     }, duration);
+  }
+
+  // ============================================================
+  //  MAGNIFIER FEATURE
+  // ============================================================
+
+  function toggleMagnifier() {
+    if (magnifierActive) {
+      deactivateMagnifier();
+    } else {
+      activateMagnifier();
+    }
+  }
+
+  function activateMagnifier() {
+    // ── Guard: clean up any existing lens before creating a new one ──
+    // This prevents stacking if activateMagnifier is called more than once
+    if (magnifierLens) {
+      // Already active — just ensure everything is tidy
+      return;
+    }
+
+    magnifierActive = true;
+    magnifierZoomKeyLocked = false;
+
+    // Remove any orphaned lens elements from a previous broken state
+    document.querySelectorAll('#ac-magnifier-lens, #ac-magnifier-badge, #ac-magnifier-hint')
+      .forEach(el => el.remove());
+
+    // ── Create lens ──
+    magnifierLens = document.createElement('div');
+    magnifierLens.id = 'ac-magnifier-lens';
+    magnifierLens.style.width  = MAGNIFIER_LENS_SIZE + 'px';
+    magnifierLens.style.height = MAGNIFIER_LENS_SIZE + 'px';
+    magnifierLens.style.left   = '-9999px';
+    magnifierLens.style.top    = '-9999px';
+
+    magnifierCanvas = document.createElement('canvas');
+    magnifierCanvas.id     = 'ac-magnifier-canvas';
+    magnifierCanvas.width  = MAGNIFIER_LENS_SIZE;
+    magnifierCanvas.height = MAGNIFIER_LENS_SIZE;
+    magnifierCtx = magnifierCanvas.getContext('2d');
+    magnifierLens.appendChild(magnifierCanvas);
+    document.body.appendChild(magnifierLens);
+
+    // ── Create zoom badge ──
+    magnifierBadge = document.createElement('div');
+    magnifierBadge.id = 'ac-magnifier-badge';
+    updateBadgeText();
+    document.body.appendChild(magnifierBadge);
+
+    // ── Create hint bar ──
+    magnifierHint = document.createElement('div');
+    magnifierHint.id = 'ac-magnifier-hint';
+    magnifierHint.innerHTML =
+      '<span>🔍 Magnifier ON</span>' +
+      '<span><kbd>↑</kbd><kbd>↓</kbd> zoom</span>' +
+      '<span><kbd>Alt+M</kbd> off</span>';
+    document.body.appendChild(magnifierHint);
+    setTimeout(() => { if (magnifierHint) magnifierHint.remove(); magnifierHint = null; }, 3000);
+
+    // ── Events ──
+    document.addEventListener('mousemove', onMagnifierMouseMove, { passive: true });
+    document.addEventListener('keydown',   onMagnifierKeyDown,   true);
+    document.addEventListener('keyup',     onMagnifierKeyUp,     true);
+
+    // ── Start screenshot refresh loop (only if not already running) ──
+    if (!magnifierRefreshTimer) {
+      requestMagnifierScreenshot();
+      magnifierRefreshTimer = setInterval(requestMagnifierScreenshot, MAGNIFIER_REFRESH_MS);
+    }
+
+    // ── Start render loop (only if not already running) ──
+    if (!magnifierRafId) {
+      magnifierRafId = requestAnimationFrame(renderMagnifier);
+    }
+
+    showToast('🔍 Magnifier ON — ↑/↓ to zoom, Alt+M to exit');
+  }
+
+  function deactivateMagnifier() {
+    magnifierActive = false;
+    magnifierZoomKeyLocked = false;
+
+    if (magnifierRafId)        { cancelAnimationFrame(magnifierRafId); magnifierRafId = null; }
+    if (magnifierRefreshTimer) { clearInterval(magnifierRefreshTimer); magnifierRefreshTimer = null; }
+    if (magnifierBadgeTimer)   { clearTimeout(magnifierBadgeTimer);    magnifierBadgeTimer = null; }
+
+    document.removeEventListener('mousemove', onMagnifierMouseMove);
+    document.removeEventListener('keydown',   onMagnifierKeyDown, true);
+    document.removeEventListener('keyup',     onMagnifierKeyUp,   true);
+
+    if (magnifierLens)   { magnifierLens.remove();   magnifierLens = null; }
+    if (magnifierBadge)  { magnifierBadge.remove();  magnifierBadge = null; }
+    if (magnifierHint)   { magnifierHint.remove();   magnifierHint = null; }
+
+    // Also sweep for any orphaned elements (safety net)
+    document.querySelectorAll('#ac-magnifier-lens, #ac-magnifier-badge, #ac-magnifier-hint')
+      .forEach(el => el.remove());
+
+    magnifierScreenshot = null;
+    magnifierCtx = null;
+    magnifierCanvas = null;
+
+    showToast('🔍 Magnifier OFF');
+  }
+
+  function onMagnifierMouseMove(e) {
+    magnifierMouseX = e.clientX;
+    magnifierMouseY = e.clientY;
+  }
+
+  function onMagnifierKeyDown(e) {
+    // Only intercept arrows when magnifier is active
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Ignore key-repeat events (e.repeat === true) — only respond to the
+      // initial keydown so zoom advances one step per press, not continuously.
+      if (e.repeat || magnifierZoomKeyLocked) return;
+
+      magnifierZoomKeyLocked = true; // released in onMagnifierKeyUp
+
+      if (e.key === 'ArrowUp') {
+        magnifierZoom = Math.min(MAGNIFIER_ZOOM_MAX, +(magnifierZoom + MAGNIFIER_ZOOM_STEP).toFixed(1));
+      } else {
+        magnifierZoom = Math.max(MAGNIFIER_ZOOM_MIN, +(magnifierZoom - MAGNIFIER_ZOOM_STEP).toFixed(1));
+      }
+      updateBadgeText();
+      flashBadge();
+    }
+  }
+
+  function onMagnifierKeyUp(e) {
+    // Unlock zoom step so next keydown can fire
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      magnifierZoomKeyLocked = false;
+    }
+  }
+
+  function updateBadgeText() {
+    if (magnifierBadge) {
+      magnifierBadge.textContent = magnifierZoom.toFixed(1) + '×';
+    }
+  }
+
+  function flashBadge() {
+    if (!magnifierBadge) return;
+    magnifierBadge.classList.add('ac-magnifier-badge-visible');
+    clearTimeout(magnifierBadgeTimer);
+    magnifierBadgeTimer = setTimeout(() => {
+      if (magnifierBadge) magnifierBadge.classList.remove('ac-magnifier-badge-visible');
+    }, 1200);
+  }
+
+  function requestMagnifierScreenshot() {
+    // Ask the background service worker to capture the visible tab
+    chrome.runtime.sendMessage({ action: 'captureMagnifierTab' }).catch(() => {});
+  }
+
+  function renderMagnifier() {
+    if (!magnifierActive) return;
+
+    const cx = magnifierMouseX;
+    const cy = magnifierMouseY;
+    const R  = MAGNIFIER_LENS_SIZE;
+
+    // Position lens centered on cursor
+    magnifierLens.style.left = cx + 'px';
+    magnifierLens.style.top  = cy + 'px';
+
+    // Position badge just below the lens
+    if (magnifierBadge) {
+      magnifierBadge.style.left = cx + 'px';
+      magnifierBadge.style.top  = (cy + R / 2 + 10) + 'px';
+    }
+
+    // Draw zoomed content onto canvas
+    if (magnifierScreenshot && magnifierCtx) {
+      const dpr = window.devicePixelRatio || 1;
+      // The viewport region to show inside the lens (in CSS pixels)
+      const srcW = R / magnifierZoom;
+      const srcH = R / magnifierZoom;
+      const srcX = cx - srcW / 2;
+      const srcY = cy - srcH / 2;
+
+      // The screenshot covers the full viewport; map CSS coords → image coords
+      const imgW  = magnifierScreenshot.naturalWidth;
+      const imgH  = magnifierScreenshot.naturalHeight;
+      const vw    = window.innerWidth;
+      const vh    = window.innerHeight;
+      const scaleX = imgW / vw;
+      const scaleY = imgH / vh;
+
+      magnifierCtx.clearRect(0, 0, R, R);
+
+      // Clip to circle
+      magnifierCtx.save();
+      magnifierCtx.beginPath();
+      magnifierCtx.arc(R / 2, R / 2, R / 2, 0, Math.PI * 2);
+      magnifierCtx.clip();
+
+      magnifierCtx.drawImage(
+        magnifierScreenshot,
+        srcX * scaleX, srcY * scaleY,   // source top-left in image
+        srcW * scaleX, srcH * scaleY,   // source dimensions in image
+        0, 0, R, R                       // destination: full canvas
+      );
+      magnifierCtx.restore();
+    }
+
+    magnifierRafId = requestAnimationFrame(renderMagnifier);
   }
 
 })();

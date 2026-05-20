@@ -151,6 +151,9 @@ chrome.commands.onCommand.addListener((command) => {
         case "read-selection":
           chrome.tabs.sendMessage(tabs[0].id, { action: "readSelection" }).catch(() => { });
           break;
+        case "toggle-magnifier":
+          chrome.tabs.sendMessage(tabs[0].id, { action: "toggleMagnifier" }).catch(() => { });
+          break;
       }
     }
   });
@@ -277,6 +280,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.error('Image fetch error:', error);
           sendResponse({ dataUrl: null, error: true });
         });
+      return true;
+
+    case "captureMagnifierTab":
+      // Capture the visible tab screenshot for the magnifier lens
+      chrome.tabs.captureVisibleTab(
+        null,
+        { format: 'jpeg', quality: 80 },
+        (dataUrl) => {
+          if (chrome.runtime.lastError || !dataUrl) return;
+          // Push screenshot back to the content script in the sender tab
+          if (sender && sender.tab && sender.tab.id) {
+            chrome.tabs.sendMessage(sender.tab.id, {
+              action: 'magnifierScreenshot',
+              dataUrl: dataUrl
+            }).catch(() => {});
+          }
+        }
+      );
+      sendResponse({ success: true });
       return true;
   }
 });
